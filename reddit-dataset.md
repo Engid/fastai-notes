@@ -16,7 +16,7 @@ Raw Datasets include (sourced from [niderhoff/nlp-datasets](https://github.com/n
 
 # BigQuery
 
-While this raw data is awesome, I've found that the best way to play around with the data without having to downloading 
+While the raw data is awesome, I've found that the best way to play around with the data without having to downloading 
 all 250 GB worth of it is through the [BigQuery tables](https://bigquery.cloud.google.com/table/fh-bigquery:reddit_comments.2015_05) created by [Felipe Hoffa](https://www.reddit.com/user/fhoffa) (thank you Mr Hoffa!). **This is a perfect solution if you're already familiar with SQL** and want to select a sub-set of this massive
 treasure-trove of data. 
 
@@ -65,18 +65,18 @@ This took me a disturbingly long time to [figure out](https://stackoverflow.com/
 but there is a little secret to joining comments to data in their parent posts. 
 
 The first step is that we have to do some string manipulation. Each post has an `id` field that is referenced by the `link_id`
-of its child comments, but for some reason reddit engineers tacked on three preceding characters which we have to chop off by
-using `SUBSTR()`. For example, each comment will have a `link_id` looking something like `t3_43go1r`, so to match the post's 
-`id` of `43go1r` we must call `SUBSTR(link_id, 4)`.
+of its child comments, but for some reason reddit engineers added three preceding characters which we have to chop off by
+using `SUBSTR()`. For example, each post has an `id` that looks something like `43go1r`, and each comment will have a `link_id` like `t3_43go1r`, so to join the two we must call `SUBSTR(link_id, 4)` on the comments `link_id`.
 
-Here is an example of a join (thanks to [Mikhail Berlyant](https://stackoverflow.com/a/48133745/4821960) for the help with the Standard SQL)
+Here is an example of a join (thanks to [Mikhail Berlyant](https://stackoverflow.com/a/48133745/4821960) for the help with the Standard SQL syntax)
 ``` SQL
 #Standard SQL
 SELECT posts.title, comments.body
 FROM `fh-bigquery.reddit_comments.2016_01` AS comments
 JOIN `fh-bigquery.reddit_posts.2016_01`  AS posts
 ON posts.id = SUBSTR(comments.link_id, 4) 
-WHERE posts.id = '43go1r'
+WHERE posts.id = '43go1r' # A single post id
+;
 ```
 
 Also, if you want to get the root comment (meaning a direct comment to the post and not a reply to another comment) using the 
@@ -84,6 +84,92 @@ previous query add another predicate statement like so: `AND comments.parent_id 
 comment is its own parent (according to reddits original JSON schema for comments). 
 
 ### more coming soon..
+
+## Exploring The Data
+
+There is almost 12 years worth of comment and post data available here, so you could use it to do many different things! 
+
+The comments start out being broken up by year, and then around 2015 they start being divided into months. 
+If you'd like to access every comment in reddits history at once, you can use the view Felipe created named `all` like so:
+```SQL
+#Standard SQL
+SELECT DISTINCT author #avoid doing SELECT * if you're worried about expenses
+FROM `fh-bigquery.reddit_comments.all`
+;
+#Note: DON'T RUN THIS IF YOU WANT TO RATION YOUR FREE-TIER QUERIES! 
+```
+
+Simmilarly, posts are broken up by months from 2015-present, but all posts prior to 2015 are contained in a single giant
+table called `full_corpus_201512`, which starts at 2006 and includes up to the end of December 2015. 
+
+### Column Names And Data Types
+
+The schema for the `fh-bigquery.reddit_comments.all` table (and likewise the subdivided comment tables) :
+
+Column | Type | Nullable? | Description
+-------|------|-----------|-----------
+body |	STRING |	NULLABLE	|
+score_hidden	| BOOLEAN	| NULLABLE |
+archived	| BOOLEAN	| NULLABLE	|
+name |	STRING |	NULLABLE	|
+author |	STRING	| NULLABLE |
+author_flair_text |	STRING	| NULLABLE |
+downs	| INTEGER	| NULLABLE	|
+created_utc |	INTEGER |	NULLABLE |
+subreddit_id	|STRING |	NULLABLE	|
+link_id	|STRING |	NULLABLE	|
+parent_id |	STRING |	NULLABLE	|
+score |	INTEGER |	NULLABLE	|
+retrieved_on |	INTEGER |	NULLABLE |
+controversiality	| INTEGER |	NULLABLE |
+gilded	| INTEGER |	NULLABLE	|
+id	| STRING |	NULLABLE	|
+subreddit |	STRING	| NULLABLE |
+ups |	INTEGER |	NULLABLE	|
+distinguished |	STRING |	NULLABLE |
+author_flair_css_class |	STRING |	NULLABLE |
+
+
+
+
+The schema for the `fh-bigquery.reddit_posts.full_corpus_201512` table (and likewise each monthly table from 2015 to present):
+
+Column | Type | Nullable? | Description
+-------|------|-----------|-----------
+created_utc |	INTEGER	| NULLABLE |
+subreddit |	STRING | NULLABLE	|
+author |	STRING |	NULLABLE	|
+domain | STRING	| NULLABLE |
+url	| STRING	| NULLABLE	|
+num_comments |	INTEGER |	NULLABLE |	
+score	| INTEGER |	NULLABLE	|
+ups	| INTEGER |	NULLABLE	|
+downs |	INTEGER	| NULLABLE	|
+title	| STRING	| NULLABLE	|
+selftext	| STRING |	NULLABLE	|
+saved |	BOOLEAN |	NULLABLE	|
+id	| STRING	| NULLABLE	|
+from_kind	| STRING |	NULLABLE	|
+gilded |	INTEGER	 | NULLABLE	|
+from	| STRING	| NULLABLE	|
+stickied |	BOOLEAN	| NULLABLE |	
+retrieved_on	| INTEGER	| NULLABLE |	
+over_18 |	BOOLEAN |	NULLABLE	|
+thumbnail |	STRING	| NULLABLE	|
+subreddit_id |	STRING |	NULLABLE	|
+hide_score |	BOOLEAN |	NULLABLE	|
+link_flair_css_class	| STRING |	NULLABLE |	
+author_flair_css_class |	STRING |	NULLABLE	|
+archived	| BOOLEAN |	NULLABLE	|
+is_self	|BOOLEAN |	NULLABLE	|
+from_id |	STRING |	NULLABLE	|
+permalink |	STRING	| NULLABLE	|
+name |	STRING |	NULLABLE	|
+author_flair_text |	STRING |	NULLABLE |	
+quarantine |	BOOLEAN |	NULLABLE	|
+link_flair_text |	STRING |	NULLABLE |	
+distinguished |	STRING |	NULLABLE	|
+
 
 # Sources and Attributions
 
